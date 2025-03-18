@@ -1,0 +1,10 @@
+anthropic
+langchain
+langchain-core
+langgraph
+langchain-anthropic
+langchain-google-genai
+google-generativeai
+jinja2
+pydantic
+requests
