@@ -16,6 +16,8 @@ show_help() {
     echo "Options:"
     echo "  -c, --codebase-path PATH   Path to the codebase to analyze (default: current working directory)"
     echo "  -o, --output-dir PATH      Directory to save the checkpoint (default: ./checkpoints)"
+    echo "  -m, --max-iterations NUM   Maximum number of iterations for analysis (default: 5)"
+    echo "  --model MODEL              Model to use: gemma, gemini, or claude (default: gemma)"
     echo "  -v, --verbose              Enable verbose output"
     echo "  -h, --help                 Display this help message and exit"
     echo ""
@@ -23,6 +25,10 @@ show_help() {
     echo "  ./run.sh                   # Analyze the current directory"
     echo "  ./run.sh --codebase-path /path/to/your/codebase --output-dir ./my-checkpoints"
 }
+
+# Default values
+MAX_ITERATIONS=5
+MODEL="gemma"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -39,6 +45,14 @@ while [[ $# -gt 0 ]]; do
             VERBOSE="--verbose"
             shift
             ;;
+        -m|--max-iterations)
+            MAX_ITERATIONS="$2"
+            shift 2
+            ;;
+        --model)
+            MODEL="$2"
+            shift 2
+            ;;
         -h|--help)
             show_help
             exit 0
@@ -51,13 +65,21 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if API keys are set
-if [ -z "$GEMINI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
-    echo "Error: Either GEMINI_API_KEY or ANTHROPIC_API_KEY environment variable must be set."
-    echo "Please set one of them using: export GEMINI_API_KEY=your_api_key_here"
-    echo "or: export ANTHROPIC_API_KEY=your_api_key_here"
+# Check if API keys are needed
+if [ "$MODEL" = "gemini" ] && [ -z "$GEMINI_API_KEY" ]; then
+    echo "Error: GEMINI_API_KEY environment variable must be set when using --model=gemini."
+    echo "Please set it using: export GEMINI_API_KEY=your_api_key_here"
     exit 1
 fi
+
+if [ "$MODEL" = "claude" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+    echo "Error: ANTHROPIC_API_KEY environment variable must be set when using --model=claude."
+    echo "Please set it using: export ANTHROPIC_API_KEY=your_api_key_here"
+    exit 1
+fi
+
+# Log model choice
+echo "Using model: $MODEL for analysis"
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
@@ -76,7 +98,7 @@ echo "Output will be saved to: $OUTPUT_DIR"
 echo ""
 
 # Use python directly instead of uvx
-python "${SCRIPT_DIR}/src/main.py" --codebase-path "$CODEBASE_PATH" --output-dir "$OUTPUT_DIR" $VERBOSE
+python "${SCRIPT_DIR}/src/main.py" --codebase-path "$CODEBASE_PATH" --output-dir "$OUTPUT_DIR" --prompt-path "${SCRIPT_DIR}/prompt.txt" --max-iterations "$MAX_ITERATIONS" --model "$MODEL" --ollama-model "gemma3:27b" $VERBOSE
 
 # Check if the command was successful
 if [ $? -eq 0 ]; then

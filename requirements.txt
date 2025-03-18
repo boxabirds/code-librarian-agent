@@ -4,6 +4,7 @@ langchain-core
 langgraph
 langchain-anthropic
 langchain-google-genai
+langchain-openai
 google-generativeai
 jinja2
 pydantic
